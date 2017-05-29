@@ -176,9 +176,8 @@ func (this *Scene) __enter(object *Object) {
 	node.next = new_node
 }
 
-func (this *Scene) leave(object_id int) {
-	object := this.objects[object_id]
-	if object == nil {
+func (this *Scene) leave(object *Object) {
+	if this.objects[object.object_id] == nil {
 		return
 	}
 
@@ -189,6 +188,7 @@ func (this *Scene) leave(object_id int) {
 		this.send_leave_message(this.objects[id], object)
 	}
 	this.__leave(object)
+	delete(this.objects, object.object_id)
 }
 
 func (this *Scene) __leave(object *Object) {
@@ -216,9 +216,8 @@ func (this *Scene) __leave(object *Object) {
 	}
 }
 
-func (this *Scene) move(object_id int, new_x int, new_y int) {
-	object := this.objects[object_id]
-	if object == nil {
+func (this *Scene) move(object *Object, new_x int, new_y int) {
+	if this.objects[object.object_id] == nil {
 		return
 	}
 

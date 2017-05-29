@@ -24,15 +24,15 @@ func Test1(t *testing.T) {
 
 	fmt.Println("------------------------------------- STEP 2")
 
-	for id := range objects {
+	for _, object := range objects {
 		x := rand.Int() % 30
 		y := rand.Int() % 30
-		s.move(id, x, y)
+		s.move(object, x, y)
 	}
 
 	fmt.Println("------------------------------------- STEP 3")
 
-	for id := range objects {
-		s.leave(id)
+	for _, object := range objects {
+		s.leave(object)
 	}
 }
