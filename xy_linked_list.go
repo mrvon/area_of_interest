@@ -5,265 +5,245 @@ import (
 )
 
 type Object struct {
-	object_id int
-	x         int
-	y         int
+	ObjectId int
+	X        int
+	Y        int
 }
 
 type ListNode struct {
-	object_id int
-	x         int
-	y         int
-	next      *ListNode
+	ObjectId int
+	X        int
+	Y        int
+	XNext    *ListNode
+	YNext    *ListNode
 }
 
 type Scene struct {
-	x_list  *ListNode
-	y_list  *ListNode
-	obj_id  int
-	objects map[int]*Object
+	XList       *ListNode
+	YList       *ListNode
+	MaxObjectId int
+	ObjectMap   map[int]*Object
 }
 
 const (
 	VisualRange = 5
 )
 
-func create_scene() *Scene {
+func CreateScene() *Scene {
 	return &Scene{
-		x_list:  &ListNode{},
-		y_list:  &ListNode{},
-		obj_id:  0,
-		objects: make(map[int]*Object),
+		XList:       &ListNode{},
+		YList:       &ListNode{},
+		MaxObjectId: 0,
+		ObjectMap:   make(map[int]*Object),
 	}
 }
 
-func abs(x int) int {
-	if x >= 0 {
-		return x
-	} else {
-		return -x
-	}
-}
-
-func (this *Scene) create_object(x int, y int) *Object {
-	this.obj_id++
+func (s *Scene) CreateObject(x int, y int) *Object {
+	s.MaxObjectId++
 	object := &Object{
-		object_id: this.obj_id,
-		x:         x,
-		y:         y,
+		ObjectId: s.MaxObjectId,
+		X:        x,
+		Y:        y,
 	}
 	return object
 }
 
-func (this *Scene) __near_set(object *Object) map[int]bool {
+func (s *Scene) NearSet(object *Object) map[int]bool {
 	// X list
-	x_set := make(map[int]bool)
-	node := this.x_list
-	for node.next != nil {
-		next := node.next
-		if next.x <= object.x {
-			if object.x-next.x <= VisualRange {
-				x_set[next.object_id] = true
+	xSet := make(map[int]bool)
+	xNode := s.XList
+	for xNode.XNext != nil {
+		next := xNode.XNext
+		if next.X <= object.X {
+			if object.X-next.X <= VisualRange {
+				xSet[next.ObjectId] = true
 			}
 		} else {
-			if next.x-object.x <= VisualRange {
-				x_set[next.object_id] = true
+			if next.X-object.X <= VisualRange {
+				xSet[next.ObjectId] = true
 			} else {
 				// Needn't go on
 				break
 			}
 		}
-		node = next
+		xNode = next
 	}
 	// Y list
-	y_set := make(map[int]bool)
-	node = this.y_list
-	for node.next != nil {
-		next := node.next
-		if next.y <= object.y {
-			if object.y-next.y <= VisualRange {
-				y_set[next.object_id] = true
+	ySet := make(map[int]bool)
+	yNode := s.YList
+	for yNode.YNext != nil {
+		next := yNode.YNext
+		if next.Y <= object.Y {
+			if object.Y-next.Y <= VisualRange {
+				ySet[next.ObjectId] = true
 			}
 		} else {
-			if next.y-object.y <= VisualRange {
-				y_set[next.object_id] = true
+			if next.Y-object.Y <= VisualRange {
+				ySet[next.ObjectId] = true
 			} else {
 				// Needn't go on
 				break
 			}
 		}
-		node = next
+		yNode = next
 	}
 	n_set := make(map[int]bool)
-	for id := range x_set {
-		if id != object.object_id && y_set[id] {
+	for id := range xSet {
+		if id != object.ObjectId && ySet[id] {
 			n_set[id] = true
 		}
 	}
 	return n_set
 }
 
-func (this *Scene) send_enter_message(watcher *Object, object *Object) {
+func (s *Scene) SendEnterMessage(watcher *Object, object *Object) {
 	fmt.Printf(
 		"\tWatcher[%d](%d,%d) <- Object[%d](%d,%d) Enter\n",
-		watcher.object_id, watcher.x, watcher.y, object.object_id, object.x, object.y,
+		watcher.ObjectId, watcher.X, watcher.Y, object.ObjectId, object.X, object.Y,
 	)
 }
 
-func (this *Scene) send_leave_message(watcher *Object, object *Object) {
+func (s *Scene) SendLeaveMessage(watcher *Object, object *Object) {
 	fmt.Printf(
 		"\tWatcher[%d](%d,%d) <- Object[%d](%d,%d) Leave\n",
-		watcher.object_id, watcher.x, watcher.y, object.object_id, object.x, object.y,
+		watcher.ObjectId, watcher.X, watcher.Y, object.ObjectId, object.X, object.Y,
 	)
 }
 
-func (this *Scene) send_move_message(watcher *Object, object *Object, old_x int, old_y int) {
+func (s *Scene) SendMoveMessage(watcher *Object, object *Object, old_x int, old_y int) {
 	fmt.Printf(
 		"\tWatcher[%d](%d,%d) <- Object[%d](%d,%d) Move to (%d,%d) \n",
-		watcher.object_id, watcher.x, watcher.y, object.object_id, old_x, old_y, object.x, object.y,
+		watcher.ObjectId, watcher.X, watcher.Y, object.ObjectId, old_x, old_y, object.X, object.Y,
 	)
 }
 
-func (this *Scene) enter(object *Object) {
-	if this.objects[object.object_id] != nil {
+func (s *Scene) Enter(object *Object) {
+	if s.ObjectMap[object.ObjectId] != nil {
 		return
 	}
-	this.objects[object.object_id] = object
-
-	fmt.Printf("Object[%d](%d,%d) Enter\n", object.object_id, object.x, object.y)
-
-	this.__enter(object)
-	near_set := this.__near_set(object)
-	for id := range near_set {
-		this.send_enter_message(this.objects[id], object)
+	s.ObjectMap[object.ObjectId] = object
+	fmt.Printf("Object[%d](%d,%d) Enter\n", object.ObjectId, object.X, object.Y)
+	s.rawEnter(object)
+	nearSet := s.NearSet(object)
+	for id := range nearSet {
+		s.SendEnterMessage(s.ObjectMap[id], object)
 	}
 }
 
-func (this *Scene) __enter(object *Object) {
+func (s *Scene) rawEnter(object *Object) {
+	newNode := &ListNode{
+		ObjectId: object.ObjectId,
+		X:        object.X,
+		Y:        object.Y,
+	}
 	// X list
-	node := this.x_list
-	for node.next != nil {
-		next := node.next
-		if object.x <= next.x {
+	xNode := s.XList
+	for xNode.XNext != nil {
+		next := xNode.XNext
+		if object.X <= next.X {
 			break
 		} else {
-			node = next
+			xNode = next
 		}
 	}
-	new_node := &ListNode{
-		object_id: object.object_id,
-		x:         object.x,
-		y:         object.y,
-		next:      node.next,
-	}
-	node.next = new_node
+	newNode.XNext = xNode.XNext
+	xNode.XNext = newNode
 	// Y list
-	node = this.y_list
-	for node.next != nil {
-		next := node.next
-		if object.y <= next.y {
+	yNode := s.YList
+	for yNode.YNext != nil {
+		next := yNode.YNext
+		if object.Y <= next.Y {
 			break
 		} else {
-			node = next
+			yNode = next
 		}
 	}
-	new_node = &ListNode{
-		object_id: object.object_id,
-		x:         object.x,
-		y:         object.y,
-		next:      node.next,
-	}
-	node.next = new_node
+	newNode.YNext = yNode.YNext
+	yNode.YNext = newNode
 }
 
-func (this *Scene) leave(object *Object) {
-	if this.objects[object.object_id] == nil {
+func (s *Scene) Leave(object *Object) {
+	if s.ObjectMap[object.ObjectId] == nil {
 		return
 	}
-
-	fmt.Printf("Object[%d](%d,%d) Leave\n", object.object_id, object.x, object.y)
-
-	near_set := this.__near_set(object)
-	for id := range near_set {
-		this.send_leave_message(this.objects[id], object)
+	fmt.Printf("Object[%d](%d,%d) Leave\n", object.ObjectId, object.X, object.Y)
+	nearSet := s.NearSet(object)
+	for id := range nearSet {
+		s.SendLeaveMessage(s.ObjectMap[id], object)
 	}
-	this.__leave(object)
-	delete(this.objects, object.object_id)
+	s.rawLeave(object)
+	delete(s.ObjectMap, object.ObjectId)
 }
 
-func (this *Scene) __leave(object *Object) {
+func (s *Scene) rawLeave(object *Object) {
 	// X list
-	node := this.x_list
-	for node.next != nil {
-		next := node.next
-		if object.object_id == next.object_id {
-			node.next = next.next
+	xNode := s.XList
+	for xNode.XNext != nil {
+		next := xNode.XNext
+		if object.ObjectId == next.ObjectId {
+			xNode.XNext = next.XNext
 			break
 		} else {
-			node = next
+			xNode = next
 		}
 	}
 	// Y list
-	node = this.y_list
-	for node.next != nil {
-		next := node.next
-		if object.object_id == next.object_id {
-			node.next = next.next
+	yNode := s.YList
+	for yNode.YNext != nil {
+		next := yNode.YNext
+		if object.ObjectId == next.ObjectId {
+			yNode.YNext = next.YNext
 			break
 		} else {
-			node = next
+			yNode = next
 		}
 	}
 }
 
-func (this *Scene) move(object *Object, new_x int, new_y int) {
-	if this.objects[object.object_id] == nil {
+func (s *Scene) Move(object *Object, new_x int, new_y int) {
+	if s.ObjectMap[object.ObjectId] == nil {
 		return
 	}
-
-	old_x := object.x
-	old_y := object.y
-
+	old_x := object.X
+	old_y := object.Y
 	fmt.Printf(
 		"Object[%d](%d,%d) Move to (%d,%d)\n",
-		object.object_id, old_x, old_y, new_x, new_y,
+		object.ObjectId, old_x, old_y, new_x, new_y,
 	)
-
-	near_set_before := this.__near_set(object)
-	this.__leave(object)
-	object.x = new_x
-	object.y = new_y
-	this.__enter(object)
-	near_set_after := this.__near_set(object)
-
-	for id := range near_set_before {
-		if near_set_after[id] {
-			this.send_move_message(this.objects[id], object, old_x, old_y)
+	nearSetBefore := s.NearSet(object)
+	s.rawLeave(object)
+	object.X = new_x
+	object.Y = new_y
+	s.rawEnter(object)
+	nearSetAfter := s.NearSet(object)
+	for id := range nearSetBefore {
+		if nearSetAfter[id] {
+			s.SendMoveMessage(s.ObjectMap[id], object, old_x, old_y)
 		} else {
-			this.send_leave_message(this.objects[id], object)
+			s.SendLeaveMessage(s.ObjectMap[id], object)
 		}
 	}
-	for id := range near_set_after {
-		if !near_set_before[id] {
-			this.send_enter_message(this.objects[id], object)
+	for id := range nearSetAfter {
+		if !nearSetBefore[id] {
+			s.SendEnterMessage(s.ObjectMap[id], object)
 		}
 	}
 }
 
-func (this *Scene) print() {
+func (s *Scene) Dump() {
 	fmt.Println("-------- X --------")
-	node := this.x_list
-	for node.next != nil {
-		next := node.next
-		fmt.Printf("[%d](%d,%d)\n", next.object_id, next.x, next.y)
-		node = next
+	xNode := s.XList
+	for xNode.XNext != nil {
+		next := xNode.XNext
+		fmt.Printf("[%d](%d,%d)\n", next.ObjectId, next.X, next.Y)
+		xNode = next
 	}
 	fmt.Println("-------- Y --------")
-	node = this.y_list
-	for node.next != nil {
-		next := node.next
-		fmt.Printf("[%d](%d,%d)\n", next.object_id, next.x, next.y)
-		node = next
+	yNode := s.YList
+	for yNode.YNext != nil {
+		next := yNode.YNext
+		fmt.Printf("[%d](%d,%d)\n", next.ObjectId, next.X, next.Y)
+		yNode = next
 	}
 	fmt.Print("\n")
 }
